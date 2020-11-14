@@ -1,22 +1,17 @@
 package main
 
 import (
-	"database/sql"
-	"log"
 	"net/http"
 
+	"github.com/arashage/todos-api/database"
+	"github.com/arashage/todos-api/model"
 	"github.com/gin-gonic/gin"
-	_ "github.com/lib/pq"
 )
 
-type Todo struct {
-	ID     int    `json:"id"`
-	Title  string `json:"title"`
-	Status string `json:"status"`
-}
+var todo model.Todo
 
 func postHandler(c *gin.Context) {
-	var rq Todo
+	var rq model.Todo
 	err := c.ShouldBindJSON(&rq)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -25,7 +20,8 @@ func postHandler(c *gin.Context) {
 		return
 	}
 
-	Insert(&rq)
+	id := database.Insert(rq)
+	rq.ID = id
 	c.JSON(http.StatusCreated, rq)
 }
 
@@ -35,26 +31,5 @@ func main() {
 
 	r.POST("/todos", postHandler)
 	r.Run(":1234")
-
-}
-
-func Insert(todo *Todo) {
-
-	database := "postgres://dazttmvw:JfDp5IwFbTcVtchOpDHBDxbI65iB9BF3@arjuna.db.elephantsql.com:5432/dazttmvw"
-	db, err := sql.Open("postgres", database)
-	if err != nil {
-		log.Fatal("Connect to database error", err)
-	}
-	defer db.Close()
-
-	insert, err := db.Query("INSERT INTO todos VALUES ($1, $2) RETURNING id", todo.Title, todo.Status)
-	var id int
-	err = insert.Scan(&id)
-
-	if err != nil {
-		log.Fatal("Can't ican id", err)
-	}
-
-	todo.ID = id
 
 }
